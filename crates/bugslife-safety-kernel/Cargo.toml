@@ -1,0 +1,15 @@
+[package]
+name = "bugslife-safety-kernel"
+version = "0.1.0"
+edition = "2021"
+authors = ["BugsLife Ecosafety Team"]
+license = "MIT"
+description = "Safety kernel for #BugsLife non-lethal pest deterrent systems, enforcing ecosafety corridors in firmware."
+repository = "https://github.com/Doctor0Evil/BugsLife"
+readme = "../README.md"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_repr = "0.1"
+thiserror = "1.0"
+log = "0.4"

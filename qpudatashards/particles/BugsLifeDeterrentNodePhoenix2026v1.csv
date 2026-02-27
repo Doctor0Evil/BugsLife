@@ -1,0 +1,12 @@
+node_id,site_type,zone,lat,lon,var_id,unit,safe,gold,hard,weight,lyap_channel,ecoimpact_score,notes
+PHX-BUG-CORE-01,HighRise,Residential-Stack-17,33.4510,-112.0730,r_noise_level,dBA,0.30,0.60,1.00,0.18,0,0.90,"Indoor A-weighted level vs. WHO/NIOSH, gold ~ 50–55 dBA"
+PHX-BUG-CORE-01,HighRise,Residential-Stack-17,33.4510,-112.0730,r_odor_intensity,odor_units,0.20,0.50,1.00,0.10,1,0.88,"Odor intensity vs. local nuisance threshold; safe ~ barely detectable"
+PHX-BUG-CORE-01,HighRise,Residential-Stack-17,33.4510,-112.0730,r_odor_tox,mg/m3,0.10,0.30,1.00,0.20,2,0.95,"Toxic VOC load vs. health-based limits; hard tied to NOAEL/REL corridors"
+PHX-BUG-CORE-01,HighRise,Residential-Stack-17,33.4510,-112.0730,r_laser_class,idx,0.05,0.15,1.00,0.15,3,0.96,"Laser/light hazard index; hard must stay <= Class 1 equivalent"
+PHX-BUG-CORE-01,HighRise,Residential-Stack-17,33.4510,-112.0730,r_light_glare,lux,0.25,0.60,1.00,0.07,4,0.86,"Glare at windows vs. nighttime comfort bands"
+PHX-BUG-CORE-01,HighRise,Residential-Stack-17,33.4510,-112.0730,r_toxicity_acute,idx,0.05,0.20,1.00,0.12,5,0.94,"Acute toxicity index for any chemical carriers (if used)"
+PHX-BUG-CORE-01,HighRise,Residential-Stack-17,33.4510,-112.0730,r_toxicity_chronic,idx,0.05,0.20,1.00,0.10,6,0.94,"Chronic toxicity index vs. NOAEL/RfD"
+PHX-BUG-CORE-01,HighRise,Residential-Stack-17,33.4510,-112.0730,r_bioaccumulation,idx,0.05,0.20,1.00,0.05,7,0.90,"Persistence/bioaccumulation corridor for any additives"
+PHX-BUG-CORE-01,HighRise,Residential-Stack-17,33.4510,-112.0730,r_disturbance_freq,events_per_day,0.20,0.50,1.00,0.10,8,0.89,"Number of active deterrent events per day/night"
+PHX-BUG-CORE-01,HighRise,Residential-Stack-17,33.4510,-112.0730,r_disturbance_duty,fraction,0.20,0.50,1.00,0.08,9,0.89,"Duty cycle of signals (fraction of time ON)"
+PHX-BUG-CORE-01,HighRise,Residential-Stack-17,33.4510,-112.0730,r_ecosystem_sensitivity,idx,0.30,0.70,1.00,0.15,10,0.97,"LifeEnvelope sensitivity (nurseries, bedrooms, roosts, etc.)"

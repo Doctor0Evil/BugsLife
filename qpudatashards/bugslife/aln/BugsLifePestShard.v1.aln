@@ -1,0 +1,38 @@
+schema BugsLifePestShard.v1 {
+  field shard_id: String
+  field site_id: String
+  field timestamp_utc: String
+
+  schema RiskCoord {
+    field r: Float      // [0.0, 1.0]
+    field sigma: Float  // [0.0, 1.0]
+    field weight: Float // >= 0.0
+  }
+
+  schema KER {
+    field k: Float  // [0.0, 1.0]
+    field e: Float  // [0.0, 1.0]
+    field r: Float  // [0.0, 1.0]
+  }
+
+  field r_noise_level: RiskCoord
+  field r_odor_intensity: RiskCoord
+  field r_odor_tox: RiskCoord
+  field r_laser_class: RiskCoord
+  field r_light_glare: RiskCoord
+  field r_toxicity_acute: RiskCoord
+  field r_toxicity_chronic: RiskCoord
+  field r_bioaccumulation: RiskCoord
+  field r_disturbance_freq: RiskCoord
+  field r_disturbance_duty: RiskCoord
+  field r_ecosystem_sensitivity: RiskCoord
+
+  field v_residual: Float
+  field u_residual: Float
+
+  field ker: KER
+
+  field kg_poisons_avoided: Float
+  field non_target_incidents: UInt32
+  field complaints_resolved: UInt32
+}

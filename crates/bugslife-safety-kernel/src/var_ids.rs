@@ -53,3 +53,43 @@ impl VarId {
         }
     }
 }
+/// Canonical varids for geometry + vibration + joint axis.
+/// These names must match CorridorBands.varid and r-keys.
+
+pub const R_GAP_RAT: &str           = "r_gap_rat";
+pub const R_GAP_ROACH: &str         = "r_gap_roach";
+pub const R_TAPER: &str             = "r_taper";
+pub const R_ROUGH: &str             = "r_rough";
+pub const R_SERVICE_HUMAN: &str     = "r_service_human";
+pub const R_SERVICE_TOOL: &str      = "r_service_tool";
+
+pub const R_STRUCTVIB_HUMAN: &str   = "r_structvib_human";
+pub const R_STRUCTVIB_PET: &str     = "r_structvib_pet";
+pub const R_STRUCTVIB_BEE: &str     = "r_structvib_bee";   // often fixed to 1 (disallowed)
+pub const R_STRUCTVIB_PEST: &str    = "r_structvib_pest";  // research-only
+
+pub const R_NOISE_HUMAN: &str       = "r_noisehuman";
+pub const R_NOISE_ANNOY: &str       = "r_noiseannoyance";
+pub const R_DIST_FREQ: &str         = "r_disturbancefreq";
+pub const R_DIST_DUTY: &str         = "r_disturbanceduty";
+
+pub const R_LIGHT_EYE: &str         = "r_lighteye";
+pub const R_LASER_CLASS: &str       = "r_laserclass";
+pub const R_THERMAL_BODY: &str      = "r_thermalbody";
+
+pub const R_MULTIMODAL: &str        = "r_multimodal";
+
+/// List of mandatory varids for BugsLifeDeterrentNode.v1 geometry/vibration layer
+pub const MANDATORY_VARIDS: &[&str] = &[
+    R_GAP_RAT,
+    R_GAP_ROACH,
+    R_SERVICE_HUMAN,
+    R_SERVICE_TOOL,
+    R_STRUCTVIB_HUMAN,
+    R_STRUCTVIB_PET,
+    R_NOISE_HUMAN,
+    R_NOISE_ANNOY,
+    R_DIST_FREQ,
+    R_DIST_DUTY,
+    R_MULTIMODAL,
+];

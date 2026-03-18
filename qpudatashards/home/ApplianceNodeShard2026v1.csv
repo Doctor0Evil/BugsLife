@@ -1,0 +1,108 @@
+spec ApplianceNodeShard2026v1 v1.0.0
+
+shardschema
+  path qpudatashards/home/ApplianceNodeShard2026v1.csv
+  role ApplianceNode
+
+fields
+  # Identity / location
+  nodeid                  string   # unique per appliance node
+  region                  string   # e.g., "US-AZ-Phoenix"
+  houselabel              string   # household identifier
+  roomlabel               string   # e.g., "Bedroom-1", "Kitchen"
+
+  # Appliance metadata
+  applianceclass          string   # Fan, Fridge, WindowAC, TV, Audio, etc.
+  adaptertype             string   # SmartPlug, IRShim, PanelRelay, SerialShim
+  ratedpowerW             f64
+  ratednoise_dBA          f64
+
+  # Corridor bands (physical units; normalization is via shared kernel)
+  noise_safe_dBA          f64
+  noise_gold_dBA          f64
+  noise_hard_dBA          f64
+
+  dT_safe_C               f64
+  dT_gold_C               f64
+  dT_hard_C               f64
+
+  vib_safe                f64      # dimensionless normalized vibration
+  vib_gold                f64
+  vib_hard                f64
+
+  # Normalized risk coordinates r_j \in [0,1]
+  rnoise                  f64      # normalized acoustic risk
+  rthermal                f64      # normalized thermal risk
+  rvib                    f64      # normalized vibration risk
+
+  # Lyapunov residual and step-to-step status
+  residualVt              f64      # current V_t
+  residualVt_prev         f64      # previous V_t for safestep
+  vt_ok                   bool     # Lyapunov invariant satisfied this tick
+
+  # Governance scores (K/E/R)
+  knowledgefactor01       f64      # K \in [0,1]
+  ecoimpact01             f64      # E \in [0,1]
+  riskofharm01            f64      # R \in [0,1]
+
+  # PDSS usage and eco metrics
+  pdss_duty_fraction      f64      # fraction of time under PDSS control
+  pdss_energy_kWh_per_day f64      # PDSS energy per day
+  baseline_pesticide_g_per_day_avoided f64
+
+  # Evidence / anchoring
+  bostrom_tx_hex          string   # Bostrom transaction anchor (hex)
+  evidencehex             string   # Merkle / governance evidence anchor
+  epoch_grammar           string   # e.g., "ecosafety2026.0"
+  lane                    string   # RESEARCH | PILOT | PRODUCTION
+  kerdeployable           bool     # runtime deployability gate
+
+  # Free notes
+  notes                   string
+
+constraints
+
+  # Basic bounds
+  constraint vt_nonnegative
+    residualVt >= 0.0
+
+  constraint vt_prev_nonnegative
+    residualVt_prev >= 0.0
+
+  constraint rnoise_bounds
+    0.0 <= rnoise <= 1.0
+
+  constraint rthermal_bounds
+    0.0 <= rthermal <= 1.0
+
+  constraint rvib_bounds
+    0.0 <= rvib <= 1.0
+
+  constraint ker_bounds
+    0.0 <= knowledgefactor01 <= 1.0
+    0.0 <= ecoimpact01      <= 1.0
+    0.0 <= riskofharm01     <= 1.0
+
+  # Corridor monotonicity
+  constraint noise_corridor_order
+    noise_safe_dBA <= noise_gold_dBA <= noise_hard_dBA
+
+  constraint dT_corridor_order
+    dT_safe_C <= dT_gold_C <= dT_hard_C
+
+  constraint vib_corridor_order
+    vib_safe <= vib_gold <= vib_hard
+
+  # KER production gates (example Phoenix-class thresholds)
+  constraint kerdeployable_gate
+    if kerdeployable == true then
+      knowledgefactor01 >= 0.90
+      ecoimpact01      >= 0.90
+      riskofharm01    <= 0.13
+      vt_ok == true
+    end
+
+writepolicy
+  # Only fully normalized, corridor-complete rows become governance-grade
+  shardwriter ApplianceNodeKernels2026
+    condition vt_ok == true

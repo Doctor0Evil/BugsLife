@@ -1,0 +1,48 @@
+aln
+Filename qpudatashards/particles/LegacyAppliancePdssNodes2026v1.aln
+Destination .qpudatashards/particles
+
+LegacyAppliancePdssNodes2026v1
+
+record LegacyApplianceNode2026v1
+    string nodeid              -- unique appliance node id
+    string region              -- e.g., US-AZ-Phoenix
+    string houselabel          -- apartment/house identifier
+    string roomlabel           -- e.g., Bedroom-1, Kitchen
+    string applianceclass      -- Fan, Fridge, WindowAC, TV, Audio
+    string adaptertype         -- SmartPlug, IRShim, PanelRelay
+    float  ratedpowerW
+    float  ratednoise_dBA
+
+    -- corridor bands (safe, gold, hard) for each channel
+    float  noise_safe_dBA
+    float  noise_gold_dBA
+    float  noise_hard_dBA
+    float  dT_safe_C
+    float  dT_gold_C
+    float  dT_hard_C
+    float  vib_safe
+    float  vib_gold
+    float  vib_hard
+
+    -- normalized risk coordinates (current)
+    float  rnoise
+    float  rthermal
+    float  rvib
+
+    -- Lyapunov residual and K/E/R scores
+    float  residualVt
+    float  knowledgefactor01
+    float  ecoimpact01
+    float  riskofharm01
+
+    -- PDSS usage stats
+    float  pdss_duty_fraction       -- fraction of time under PDSS control
+    float  pdss_energy_kWh_per_day  -- energy consumed for deterrence
+    float  baseline_pesticide_g_per_day_avoided
+
+    -- governance
+    string bostrom_tx_hex
+    string evidencehex
+    string notes
+end

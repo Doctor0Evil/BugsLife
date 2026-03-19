@@ -1,0 +1,22 @@
+aln BugsLifeApplianceConnector2026v1
+
+record BugsLifeApplianceConnectorRowV1
+    string connectorid
+    string pestprofile          # bedbug_cool_surface_low, rodent_quiet_vib, ...
+    string applianceid          # matches ApplianceModalityRowV1.applianceid
+    string modeid               # chosen mode for this profile
+    float intent_intensity_min  # 0..1
+    float intent_intensity_max  # 0..1
+
+    # Conservative envelope of expected risk coordinates for this mapping
+    float rnoisehuman01_max
+    float rnoiserodent01_max
+    float rthermalbody01_max
+    float rvibrationstruct01_max
+    float rlightflicker01_max
+
+    # Governance
+    string corridorshardid
+    string evidencehex
+    string timestamputciso8601
+end

@@ -1,0 +1,296 @@
+# ============================================================================
+# BugsLife PDSS - Edge Gateway Deployment Configuration
+# File: deployment/pdss_gateway_config.yaml
+# Version: 0.9.2-ecotribute
+# License: MIT + Ecological Safety Covenant
+#
+# DESCRIPTION:
+# This configuration file orchestrates the PDSS Edge Gateway, integrating
+# the Rust Safety Kernel, Lua Adapters, ALN Learning, and Governance Shards
+# across Matter, MQTT, and BACnet protocols. It enforces safety invariants
+# at the deployment layer, ensuring no node operates without valid attestation.
+#
+# SAFETY CRITICAL:
+# - Do not modify safety_invariants without re-certification (IEC 61508).
+# - Corridor limits must match Rust kernel constants (kernel.rs).
+# - K/E/R thresholds enforce ecological compliance before actuation.
+#
+# RESEARCH CONTRIBUTION:
+# Provides the final integration layer for the "Universal Firmware Connectivity"
+# goal, enabling plug-and-play deployment across residential and commercial zones.
+# ============================================================================
+
+---
+# SECTION 1: GATEWAY IDENTITY & REGIONAL COMPLIANCE
+# Aligns with regulatory_compliance_matrix.md (FCC, CE, GDPR)
+
+gateway:
+  id: "gw-pdss-001-ecotribute"
+  device_did: "did:bostrom:${GATEWAY_DID_SECRET}" # Injected via ENV
+  firmware_version: "0.9.2-ecotribute"
+  region_code: "NA" # Options: NA, EU, APAC
+  regulatory_tags:
+    - "FCC_PART15"
+    - "CE_RED"
+    - "GDPR_COMPLIANT"
+    - "EPA_DEVICE_EXEMPT"
+  timezone: "UTC"
+  ntp_server: "pool.ntp.org"
+
+# SECTION 2: SAFETY KERNEL CONFIGURATION
+# Mirrors Rust Kernel (kernel.rs) constants. Do not exceed hard limits.
+
+safety_kernel:
+  # Lyapunov Residual Constraints
+  lyapunov:
+    max_residual_value: 10.0
+    non_increasing_epsilon: 0.000001
+    check_interval_ms: 100
+  
+  # Corridor Hard Limits (Normalized 0.0-1.0)
+  # Must match CorridorBands in kernel.rs and deterrent_node_shard.proto
+  corridors:
+    rnoise_human:
+      safe_limit: 0.5
+      gold_limit: 0.8
+      hard_limit: 0.95 # Corresponds to ~85dB
+      weight: 1.0
+      mandatory: true
+    rthermal_body:
+      safe_limit: 0.5
+      gold_limit: 0.8
+      hard_limit: 0.90 # Corresponds to ~45C
+      weight: 1.2
+      mandatory: true
+    rodortox:
+      safe_limit: 0.3
+      gold_limit: 0.6
+      hard_limit: 0.7
+      weight: 1.5
+      mandatory: true
+  
+  # K/E/R Deployment Thresholds
+  # Gateway will not activate intents if scores fall below these
+  deployment_thresholds:
+    knowledge_min: 0.90
+    eco_impact_min: 0.90
+    residual_risk_max: 0.15
+
+# SECTION 3: PROTOCOL BRIDGES
+# Enables interoperability across Matter, MQTT, and BACnet ecosystems.
+
+protocols:
+  # Matter (Thread/Wi-Fi) - Residential Integration
+  matter:
+    enabled: true
+    vendor_id: 0xFF01 # Ecotribute Vendor ID (Pending CSA Assignment)
+    product_id: 0x0001
+    commissioning_mode: "standard"
+    clusters:
+      pdss_intent:
+        cluster_id: 0xFF010001 # Custom PDSS Cluster
+        endpoint: 1
+        attributes:
+          - "ProfileID"
+          - "IntensityPct"
+          - "SafetyAttestation"
+    security:
+      pase_required: true
+      case_required: true
+      attestation_required: true
+  
+  # MQTT (Cloud/Local) - Telemetry & Governance
+  mqtt:
+    enabled: true
+    broker_url: "${MQTT_BROKER_URL}" # e.g., ssl://broker.ecotribute.org:8883
+    qos: 1
+    tls:
+      enabled: true
+      ca_cert_path: "/etc/ssl/certs/ecotribute-ca.pem"
+      client_cert_path: "/etc/ssl/certs/gateway-client.pem"
+      client_key_path: "${MQTT_CLIENT_KEY}" # Injected via ENV
+    topics:
+      intent_subscribe: "pdss/${GATEWAY_DID}/intent"
+      telemetry_publish: "pdss/${GATEWAY_DID}/telemetry"
+      shard_upload: "pdss/${GATEWAY_DID}/shard"
+      firmware_ota: "pdss/${GATEWAY_DID}/ota"
+  
+  # BACnet (IP/SC) - Commercial Building Integration
+  bacnet:
+    enabled: true
+    network_interface: "eth0"
+    port: 47808
+    object_name: "PDSS-Gateway-001"
+    object_id: 10001
+    property_mapping:
+      corridors: "AnalogValue:1-10"
+      ker_scores: "MultistateValue:1"
+      alarm_state: "BinaryInput:1"
+    security:
+      bacnet_sc_enabled: true # BACnet Secure Connect
+      certificate_path: "/etc/ssl/certs/bacnet-gateway.pem"
+
+# SECTION 4: APPLIANCE ADAPTERS
+# Links to Lua scripts (appliance_adapters.lua) and characterization data.
+
+adapters:
+  engine: "lua-5.4"
+  script_path: "/opt/pdss/firmware/adapters/appliance_adapters.lua"
+  characterization_db: "/opt/pdss/data/appliance_registry.json"
+  timeout_ms: 500
+  retry_count: 3
+  
+  # Registered Appliances (Populated via bench-testing)
+  # Matches ApplianceCharacterization in deterrent_node_shard.proto
+  devices:
+    - appliance_id: "fan_legacy_3speed_01"
+      type: "IR_CONTROLLED"
+      modality: "acoustic_airflow"
+      characterization_file: "/opt/pdss/data/fan_01_char.csv"
+      safety_override: false
+    - appliance_id: "heater_smartplug_01"
+      type: "MQTT_RELAY"
+      modality: "thermal"
+      characterization_file: "/opt/pdss/data/heater_01_char.csv"
+      safety_override: false
+    - appliance_id: "tv_visual_deterrent_01"
+      type: "HDMI_CEC"
+      modality: "visual"
+      characterization_file: "/opt/pdss/data/tv_01_char.csv"
+      safety_override: false
+
+# SECTION 5: ADAPTIVE LEARNING (ALN)
+# Configures firmware-adaptive connector profiles (adaptive_logic_network.aln).
+
+learning:
+  enabled: true
+  policy: "CONSERVATIVE" # Options: CONSERVATIVE, MODERATE (AGGRESSIVE disabled)
+  buffer_size: 100
+  update_interval_ms: 60000
+  envelope_model:
+    type: "LINEAR"
+    max_uncertainty_bound: 0.5
+    min_uncertainty_bound: 0.05
+    learning_rate: 0.1
+  exploration:
+    max_step_size: 0.1
+    require_kernel_approval: true
+    block_on_violation: true
+    consecutive_violation_limit: 5
+  data_retention:
+    local_samples_days: 7
+    upload_to_registry: true
+    anonymize_before_upload: true # GDPR Compliance
+
+# SECTION 6: GOVERNANCE & SHARD SYNC
+# Manages DeterrentNodeShard attestation and registry synchronization.
+
+governance:
+  shard:
+    storage_path: "/var/lib/pdss/shards"
+    max_shard_age_days: 30
+    signature_algorithm: "Ed25519"
+    hash_algorithm: "SHA-256"
+  
+  registry:
+    enabled: true
+    grpc_endpoint: "${SHARD_REGISTRY_GRPC}" # e.g., registry.ecotribute.org:443
+    tls_enabled: true
+    upload_interval_ms: 300000 # 5 minutes
+    verify_on_download: true
+  
+  audit:
+    log_all_decisions: true
+    log_path: "/var/log/pdss/audit.log"
+    rotate_days: 90
+    encrypt_logs: true
+
+# SECTION 7: ECOLOGICAL CONSTRAINTS
+# Enforces sustainability goals beyond safety (Eco-Impact Score).
+
+ecology:
+  energy_budget:
+    max_daily_kwh: 5.0 # Hard limit per gateway
+    peak_hour_restrictions: true # Reduce load during grid peak
+    renewable_preference: true # Prioritize actuation when solar/wind available
+  waste_reduction:
+    prevent_short_cycling: true
+    min_actuation_duration_sec: 60
+    max_actuation_duration_sec: 3600
+  biodiversity:
+    protected_species_filter: true # Block profiles harmful to bees/bats
+    seasonal_restrictions: true # Reduce activity during breeding seasons
+    noise_curfew:
+      enabled: true
+      start_hour: 22
+      end_hour: 7
+      max_db_reduction: 10
+
+# SECTION 8: EMERGENCY PROCEDURES
+# Fallback modes and E-Stop triggers (Matches appliance_characterization.cpp).
+
+emergency:
+  estop:
+    enabled: true
+    trigger_sources:
+      - "hardware_gpio"
+      - "mqtt_command"
+      - "kernel_hard_violation"
+      - "watchdog_timeout"
+    action: "CUT_ALL_POWER"
+    reset_requires_manual: true
+  
+  fallback_mode:
+    enabled: true
+    trigger: "connectivity_loss"
+    behavior: "SAFE_HOLD" # Maintain current state, no new intents
+    duration_hours: 24
+  
+  alerts:
+    email_recipients: ["admin@ecotribute.org"]
+    sms_recipients: ["${ADMIN_PHONE}"]
+    webhook_url: "${ALERT_WEBHOOK}"
+    severity_levels:
+      - "INFO"
+      - "WARNING"
+      - "CRITICAL"
+      - "EMERGENCY"
+
+# SECTION 9: LOGGING & MONITORING
+# Observability with privacy preservation.
+
+logging:
+  level: "INFO" # Options: DEBUG, INFO, WARN, ERROR
+  format: "JSON"
+  output:
+    - "stdout"
+    - "file:/var/log/pdss/gateway.log"
+  privacy:
+    mask_device_ids: false # DID is public identity
+    mask_sensor_data: true # Do not log raw audio/video
+    gdpr_right_to_erasure: true
+  
+  metrics:
+    prometheus_enabled: true
+    port: 9090
+    path: "/metrics"
+    include_ker_scores: true
+    include_residual_value: true
+
+# SECTION 10: DEPLOYMENT VALIDATION
+# Pre-flight checks before gateway starts.
+
+validation:
+  pre_start_checks:
+    - "verify_kernel_signature"
+    - "verify_corridor_integrity"
+    - "verify_did_certificate"
+    - "verify_tls_connectivity"
+    - "verify_storage_permissions"
+  fail_closed: true # If checks fail, do not start
+  self_test_on_boot: true
+  self_test_timeout_sec: 30
+
+# ============================================================================
+# END OF CONFIGURATION
+# ============================================================================

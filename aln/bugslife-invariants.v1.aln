@@ -1,0 +1,11 @@
+use BugsLifeDeterrentNode2026v1
+
+aln contract invariant.bugslife.corridors_present(n BugsLifeDeterrentNodeShardV1) - bool
+    let hascorridors n.ncorridors > 0
+    let hasmandatory n.nmandatorycorridors > 0
+    hascorridors && hasmandatory
+end
+
+aln contract invariant.bugslife.residual_nonincreasing(vt f64, vtp1 f64) - bool
+    vtp1 <= vt
+end

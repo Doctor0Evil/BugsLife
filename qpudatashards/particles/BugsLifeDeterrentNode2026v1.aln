@@ -1,0 +1,42 @@
+aln BugsLifeDeterrentNode2026v1
+
+record BugsLifeDeterrentNodeShardV1
+    string nodeid             # device ID or DID-derived tag
+    string region             # e.g., Phoenix-AZ-US
+    string locationtype       # apartment, school, barn, etc.
+    string pestprofile        # bedbug, rodent, roach, mixed
+    string firmwareversion    # Rust safety kernel version
+    string adapterprofileid   # appliance-connector profile
+
+    # Current risk state r_j in 0..1
+    float rnoisehuman01
+    float rnoiserodent01
+    float rthermalbody01
+    float rvibrationstruct01
+    float rlightflicker01
+    float rrodortox01
+    float rsoilbiota01
+    float rbee01
+    float rbird01
+
+    # Lyapunov residual and K/E/R triad
+    float lyapunovresidual    # V_t
+    float knowledgefactor01   # K
+    float ecoimpact01         # E
+    float riskofharm01        # R
+
+    # Corridor metadata
+    string corridorshardid    # ID of corridor bands shard used
+    string corridorsversion   # version tag
+    uint32 ncorridors
+    uint32 nmandatorycorridors
+
+    # Governance and provenance
+    string devicebostromdid
+    string primarybostromaddr
+    string altbostromaddr
+    string safeaddrs
+    string evidencehex        # Googolswarm/Bostrom tx with lab data + proofs
+    string timestamputciso8601
+    string notes
+end

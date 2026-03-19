@@ -1,0 +1,33 @@
+aln ApplianceModalityPhoenix2026v1
+
+record ApplianceModalityRowV1
+    string applianceid       # make/model or IR code set ID
+    string class             # fan, space_heater, tv, speaker, smart_plug
+    string region            # Phoenix-AZ-US, etc.
+
+    # Operating mode descriptor (e.g., fan_speed=low)
+    string modeid
+    string modeschema        # free-text or JSON pointer for richer configs
+
+    # Measured outputs at this mode (Phoenix-calibrated lab rig)
+    float noise_dbA          # overall dBA at 1 m
+    float noise_db_rodent    # band-limited level in rodent band
+    float airspeed_ms        # for fans
+    float surfacetempC       # radiant/convective impact
+    float vib_ms2            # structural acceleration
+    float illuminance_lux    # for TVs/lights
+    float power_w            # real power draw
+
+    # Normalized risk coordinates under this mode for canonical corridors
+    float rnoisehuman01
+    float rnoiserodent01
+    float rthermalbody01
+    float rvibrationstruct01
+    float rlightflicker01
+
+    # Measurement conditions and provenance
+    string labid
+    string protocolref       # e.g., ISO/ANSI acoustics or thermal refs
+    string evidencehex       # raw data + scripts
+    string timestamputciso8601
+end

@@ -1,0 +1,255 @@
+// ============================================================================
+// BugsLife PDSS - DeterrentNodeShard Governance Schema
+// File: governance/deterrent_node_shard.proto
+// Version: 0.9.2-ecotribute
+// License: MIT + Ecological Safety Covenant
+//
+// DESCRIPTION:
+// This Protocol Buffers schema defines the canonical structure for the
+// DeterrentNodeShard, the immutable state record for every PDSS node.
+// It enables cross-platform governance (Rust, Lua, ALN, C++) by providing
+// a language-neutral serialization format for audit, synchronization, and
+// regulatory compliance.
+//
+// SAFETY GUARANTEES:
+// - All safety-critical fields (corridors, residuals) are explicitly typed.
+// - Cryptographic attestation fields are mandatory for valid shards.
+// - K/E/R scores are embedded for real-time ecological impact tracking.
+//
+// RESEARCH CONTRIBUTION:
+// Addresses the "Governance & Certification" gap by standardizing the
+// machine-checkable proof of safety compliance across IoT ecosystems.
+// ============================================================================
+
+syntax = "proto3";
+
+package ecotribute.pdss.governance;
+
+option cc_enable_arenas = true; // Optimize for C++/Rust interop
+option go_package = "github.com/ecotribute/pdss/governance";
+option java_package = "org.ecotribute.pdss.governance";
+
+// ============================================================================
+// SECTION 1: CORE ENUMERATIONS (Matches Rust VarId & ALN Specs)
+// ============================================================================
+
+/// Risk Coordinate Identifiers
+/// Must remain stable across all firmware versions for historical audit.
+enum VarId {
+  VAR_ID_UNSPECIFIED = 0;
+  VAR_ID_NOISE_HUMAN = 1;      // 0x01
+  VAR_ID_LIGHT_EYE = 2;        // 0x02
+  VAR_ID_ODOR_TOX = 3;         // 0x03
+  VAR_ID_THERMAL_BODY = 4;     // 0x04
+  VAR_ID_STRUCT_VIB = 5;       // 0x05
+  VAR_ID_FREQ_ULTRASONIC = 6;  // 0x06
+  VAR_ID_EM_FIELD = 7;         // 0x07
+  VAR_ID_AIRFLOW = 8;          // 0x08
+  VAR_ID_MOISTURE = 9;         // 0x09
+  VAR_ID_MULTIMODAL = 10;      // 0x0A
+}
+
+/// Corridor Boundary Status
+/// Used for real-time safety state reporting.
+enum CorridorStatus {
+  CORRIDOR_STATUS_UNSPECIFIED = 0;
+  CORRIDOR_STATUS_CLEAR = 1;
+  CORRIDOR_STATUS_SAFE_BOUNDARY = 2;
+  CORRIDOR_STATUS_GOLD_WARNING = 3;
+  CORRIDOR_STATUS_HARD_VIOLATION = 4;
+}
+
+/// Kernel Decision Codes
+/// Reflects the outcome of BugsLifeSafetyKernel::safestep()
+enum DecisionCode {
+  DECISION_CODE_UNSPECIFIED = 0;
+  DECISION_CODE_APPROVED = 1;
+  DECISION_CODE_DERATE_INTENSITY = 2;
+  DECISION_CODE_DERATE_DUTY_CYCLE = 3;
+  DECISION_CODE_STOP_IMMEDIATE = 4;
+  DECISION_CODE_CORRIDOR_VIOLATION = 5;
+  DECISION_CODE_LYAPUNOV_VIOLATION = 6;
+}
+
+// ============================================================================
+// SECTION 2: SAFETY & RISK STRUCTURES
+// ============================================================================
+
+/// Corridor Bands defining safe operating zones for a specific VarId
+message CorridorBands {
+  double safe_limit = 1;    // Green zone threshold (normalized 0.0-1.0)
+  double gold_limit = 2;    // Yellow zone threshold (normalized 0.0-1.0)
+  double hard_limit = 3;    // Red zone threshold (absolute prohibition)
+  double weight = 4;        // Lyapunov weight w_j for residual computation
+  uint32 lyap_channel = 5;  // Channel index for residual aggregation
+  bool mandatory = 6;       // If true, violation triggers immediate stop
+}
+
+/// Single Risk Coordinate within the state vector
+message RiskCoordinate {
+  VarId varid = 1;
+  double value = 2;         // Current normalized risk level (0.0-1.0)
+  double uncertainty = 3;   // ALN learning uncertainty bound
+  int64 last_measured_ms = 4; // Timestamp of last sensor update
+}
+
+/// Lyapunov Residual State (V_t)
+/// Critical for proving stability and safety invariant (V_t+1 <= V_t)
+message LyapunovResidual {
+  double value = 1;
+  double previous_value = 2;
+  repeated double channel_weights = 3; // Max 16 channels
+  bool is_non_increasing = 4; // Computed invariant check
+}
+
+/// Complete Risk State Vector
+message RiskState {
+  repeated RiskCoordinate coordinates = 1; // Max 10 coordinates
+  int64 timestamp_ms = 2;
+  LyapunovResidual residual = 3;
+}
+
+// ============================================================================
+// SECTION 3: ECOLOGICAL & LEARNING METRICS
+// ============================================================================
+
+/// K/E/R Triad Scores (Knowledge, Eco-Impact, Residual Risk)
+/// Used for deployment eligibility and regulatory reporting.
+message KERScores {
+  double knowledge = 1;       // Target >= 0.90 (Data confidence)
+  double eco_impact = 2;      // Target >= 0.90 (Sustainability)
+  double residual_risk = 3;   // Target <= 0.15 (Safety margin)
+  int64 last_updated_ms = 4;
+}
+
+/// Adaptive Logic Network Envelope Model
+/// Represents the learned behavior of the specific appliance instance.
+message EnvelopeModel {
+  enum ModelType {
+    MODEL_TYPE_UNSPECIFIED = 0;
+    MODEL_TYPE_LINEAR = 1;
+    MODEL_TYPE_PIECEWISE = 2;
+    MODEL_TYPE_GAUSSIAN = 3;
+  }
+  ModelType type = 1;
+  repeated double parameters = 2; // Max 16 parameters
+  double uncertainty_bound = 3;   // Worst-case deviation
+  double valid_range_min = 4;
+  double valid_range_max = 5;
+}
+
+/// Appliance Characterization Data
+message ApplianceCharacterization {
+  string appliance_id = 1;
+  string appliance_type = 2;
+  map<int32, double> modality_map = 3; // VarId -> Efficiency Factor
+  EnvelopeModel learned_envelope = 4;
+  double confidence_score = 5;
+  int64 last_updated_ms = 6;
+  uint32 sample_count = 7;
+}
+
+// ============================================================================
+// SECTION 4: CRYPTOGRAPHIC ATTESTATION
+// ============================================================================
+
+/// Digital Signature and Proof Structure
+message ShardAttestation {
+  string device_did = 1;       // Bostrom DID (e.g., did:bostrom:...)
+  bytes public_key = 2;        // Ed25519 or Secp256k1 public key
+  bytes signature = 3;         // Signature over shard_hash
+  bytes shard_hash = 4;        // SHA-256 of canonicalized shard content
+  int64 signed_timestamp_ms = 5;
+  string authority_id = 6;     // Optional CA or Regulator ID
+}
+
+// ============================================================================
+// SECTION 5: THE DETERRIENT NODE SHARD (ROOT MESSAGE)
+// ============================================================================
+
+/// The Immutable State Record for a PDSS Node
+/// This message is signed and stored locally + uploaded to governance registry.
+message DeterrentNodeShard {
+  // Identity
+  string shard_id = 1;              // Unique UUID for this shard version
+  string device_did = 2;            // Decentralized Identifier
+  string firmware_version = 3;      // SemVer of running safety kernel
+  int64 created_at_ms = 4;
+  int64 expires_at_ms = 5;          // Shard validity window
+
+  // Safety State
+  RiskState risk_state = 6;
+  map<int32, CorridorBands> corridors = 7; // VarId -> Bands
+  DecisionCode last_decision = 8;
+
+  // Learning & Ecology
+  ApplianceCharacterization appliance_char = 9;
+  KERScores ker_scores = 10;
+
+  // Governance
+  ShardAttestation attestation = 11;
+  repeated string regulatory_tags = 12; // e.g., "EU-RED", "FCC-PART15"
+  
+  // Reserved for future expansion (Forward Compatibility)
+  reserved 13 to 15;
+}
+
+// ============================================================================
+// SECTION 6: GOVERNANCE SERVICE DEFINITION (gRPC)
+// ============================================================================
+
+/// Service for Shard Synchronization and Audit
+/// Enables regulators and consumers to verify safety compliance remotely.
+service ShardRegistry {
+  // Upload a new shard state (signed by device)
+  rpc UploadShard(DeterrentNodeShard) returns (UploadResponse);
+  
+  // Verify a shard's attestation and safety invariants
+  rpc VerifyShard(ShardVerifyRequest) returns (ShardVerifyResponse);
+  
+  // Query historical shards for audit trails
+  rpc QueryHistory(ShardHistoryRequest) returns (stream DeterrentNodeShard);
+  
+  // Download latest corridor definitions from central authority
+  rpc GetCorridorUpdates(CorridorUpdateRequest) returns (CorridorUpdateResponse);
+}
+
+message UploadResponse {
+  bool accepted = 1;
+  string registry_id = 2;
+  int64 timestamp_ms = 3;
+}
+
+message ShardVerifyRequest {
+  string shard_id = 1;
+  bytes shard_data = 2; // Raw protobuf bytes
+  ShardAttestation attestation = 3;
+}
+
+message ShardVerifyResponse {
+  bool valid_signature = 1;
+  bool valid_invariants = 2; // Lyapunov & Corridor checks passed
+  string failure_reason = 3;
+  KERScores audited_scores = 4;
+}
+
+message ShardHistoryRequest {
+  string device_did = 1;
+  int64 start_ms = 2;
+  int64 end_ms = 3;
+}
+
+message CorridorUpdateRequest {
+  string region_code = 1; // e.g., "EU", "NA"
+  string species_class = 2; // e.g., "INSECTA", "MAMMALIA"
+}
+
+message CorridorUpdateResponse {
+  map<int32, CorridorBands> updated_corridors = 1;
+  int64 valid_until_ms = 2;
+  bytes authority_signature = 3;
+}
+
+// ============================================================================
+// END OF SPECIFICATION
+// ============================================================================

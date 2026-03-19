@@ -1,0 +1,215 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ecotribute.org/schemas/pdss-intent-v1.json",
+  "title": "PDSS Intent Vocabulary",
+  "description": "Universal intent schema for Pest-Deterrent Safety Systems (PDSS). Compatible with Matter, MQTT, and BACnet. Enforces safety constraints at the data layer.",
+  "type": "object",
+  "required": [
+    "metadata",
+    "intent",
+    "safety"
+  ],
+  "properties": {
+    "metadata": {
+      "$ref": "#/$defs/metadata"
+    },
+    "intent": {
+      "$ref": "#/$defs/deterrent_intent"
+    },
+    "safety": {
+      "$ref": "#/$defs/safety_attestation"
+    },
+    "telemetry": {
+      "$ref": "#/$defs/telemetry_config"
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "metadata": {
+      "type": "object",
+      "description": "Message routing and versioning information. Aligns with Matter Transaction ID and MQTT Correlation Data.",
+      "required": [
+        "schema_version",
+        "timestamp_ms",
+        "device_did",
+        "transaction_id"
+      ],
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "const": "1.0.0-ecotribute",
+          "description": "Immutable schema version for compatibility checking."
+        },
+        "timestamp_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Unix epoch milliseconds. Used for Lyapunov residual time-step validation."
+        },
+        "device_did": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^did:bostrom:[a-zA-Z0-9]{32,}$",
+          "description": "Decentralized Identifier (Bostrom DID) binding this intent to a specific hardware root of trust."
+        },
+        "transaction_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Unique ID for audit logging and shard reconciliation."
+        }
+      }
+    },
+    "deterrent_intent": {
+      "type": "object",
+      "description": "The core abstract command. Never contains raw hardware codes (PWM/IR). Must be translated by adapter layer.",
+      "required": [
+        "profile_id",
+        "intensity_pct",
+        "duty_cycle"
+      ],
+      "properties": {
+        "profile_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9_]{4,32}$",
+          "description": "Pre-defined deterrent strategy (e.g., 'bedbug_thermal_low'). Maps to CorridorBands in Rust kernel."
+        },
+        "target_species": {
+          "type": "string",
+          "pattern": "^[a-z_]+$",
+          "description": "Latin name or common group (e.g., 'cimex_lectularius', 'rodent'). Used for ecological impact tracking."
+        },
+        "intensity_pct": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "multipleOf": 0.01,
+          "description": "Normalized actuation strength. 0.0 = OFF, 1.0 = Max Safe Limit. Validated against CorridorBands."
+        },
+        "duty_cycle": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "multipleOf": 0.01,
+          "description": "Temporal activation ratio. Used to reduce energy consumption and average emissions."
+        },
+        "schedule_window": {
+          "type": "object",
+          "description": "Optional time bounds. Enforced by gateway to prevent nighttime noise violations.",
+          "properties": {
+            "start_ms": { "type": "integer" },
+            "end_ms": { "type": "integer" }
+          }
+        },
+        "modality_override": {
+          "type": "string",
+          "enum": [
+            "thermal",
+            "acoustic",
+            "visual",
+            "airflow",
+            "multimodal"
+          ],
+          "description": "Optional constraint to limit actuation to specific physical modalities."
+        }
+      }
+    },
+    "safety_attestation": {
+      "type": "object",
+      "description": "Cryptographic proof that this intent passed the Rust Safety Kernel's invariant checks.",
+      "required": [
+        "kernel_approved",
+        "lyapunov_residual",
+        "corridor_status",
+        "ker_scores"
+      ],
+      "properties": {
+        "kernel_approved": {
+          "type": "boolean",
+          "description": "True only if BugsLifeSafetyKernel::safestep() returned Approved or Derated."
+        },
+        "lyapunov_residual": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 10.0,
+          "description": "Current V_t value. Must be non-increasing over time (V_t+1 <= V_t)."
+        },
+        "corridor_status": {
+          "type": "string",
+          "enum": [
+            "clear",
+            "safe_boundary",
+            "gold_warning",
+            "hard_violation"
+          ],
+          "description": "Current risk coordinate status. 'hard_violation' must block actuation."
+        },
+        "ker_scores": {
+          "type": "object",
+          "description": "Knowledge/Eco-Impact/Residual Risk triad. Drives deployment eligibility.",
+          "required": [ "k", "e", "r" ],
+          "properties": {
+            "k": { "type": "number", "minimum": 0.0, "maximum": 1.0, "description": "Knowledge Score. Target >= 0.90." },
+            "e": { "type": "number", "minimum": 0.0, "maximum": 1.0, "description": "Eco-Impact Score. Target >= 0.90." },
+            "r": { "type": "number", "minimum": 0.0, "maximum": 1.0, "description": "Residual Risk. Target <= 0.15." }
+          }
+        },
+        "attestation_hash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "SHA-256 hash of the decision signed by device private key. Verifiable on DeterrentNodeShard."
+        }
+      }
+    },
+    "telemetry_config": {
+      "type": "object",
+      "description": "Configuration for feedback data used in Adaptive Logic Network (ALN) learning.",
+      "properties": {
+        "report_interval_ms": {
+          "type": "integer",
+          "minimum": 1000,
+          "description": "Frequency of sensor data upload for envelope refinement."
+        },
+        "include_power_data": {
+          "type": "boolean",
+          "description": "If true, include energy consumption metrics for Eco-Impact scoring."
+        },
+        "include_sensor_raw": {
+          "type": "boolean",
+          "description": "If true, include raw sensor vectors (noise, temp) for corridor validation."
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "metadata": {
+        "schema_version": "1.0.0-ecotribute",
+        "timestamp_ms": 1714567890123,
+        "device_did": "did:bostrom:8f7a9b2c3d4e5f6a7b8c9d0e1f2a3b4c",
+        "transaction_id": "550e8400-e29b-41d4-a716-446655440000"
+      },
+      "intent": {
+        "profile_id": "bedbug_thermal_low",
+        "target_species": "cimex_lectularius",
+        "intensity_pct": 0.45,
+        "duty_cycle": 0.60,
+        "modality_override": "thermal"
+      },
+      "safety": {
+        "kernel_approved": true,
+        "lyapunov_residual": 2.34,
+        "corridor_status": "safe_boundary",
+        "ker_scores": {
+          "k": 0.93,
+          "e": 0.91,
+          "r": 0.12
+        },
+        "attestation_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "telemetry": {
+        "report_interval_ms": 5000,
+        "include_power_data": true,
+        "include_sensor_raw": false
+      }
+    }
+  ]
+}
